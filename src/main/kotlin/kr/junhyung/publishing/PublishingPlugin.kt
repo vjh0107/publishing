@@ -27,11 +27,9 @@ class PublishingPlugin : Plugin<Project> {
         val plugins = target.plugins
         val softwareComponents = target.components
 
-        val projectGroupId = target.group.toString()
-        val projectVersion = target.version.toString()
-        val artifactId = target.name
+        createMavenPublication(publishingExtension, plugins, softwareComponents)
 
-        createMavenPublication(publishingExtension, plugins, softwareComponents, projectGroupId, projectVersion, artifactId)
+        val projectVersion = ProjectVersion.from(target)
         addMavenRepositories(publishingExtension, projectVersion)
     }
 
@@ -39,16 +37,9 @@ class PublishingPlugin : Plugin<Project> {
         publishingExtension: PublishingExtension,
         plugins: PluginContainer,
         softwareComponents: SoftwareComponentContainer,
-        projectGroupId: String,
-        projectVersion: String,
-        artifactId: String,
     ) {
         publishingExtension.publications {
             create<MavenPublication>("maven") {
-                this.groupId = projectGroupId
-                this.version = projectVersion
-                this.artifactId = artifactId
-
                 if (plugins.hasPlugin(JavaPlugin::class)) {
                     from(softwareComponents["java"])
                 }
@@ -60,29 +51,30 @@ class PublishingPlugin : Plugin<Project> {
         }
     }
 
-    private fun addMavenRepositories(publishingExtension: PublishingExtension, projectVersion: String) {
-        publishingExtension.repositories {
-            val url = if (isSnapshotVersion(projectVersion)) {
-                "https://nexus.junhyung.kr/repository/maven-snapshots/"
-            } else {
-                "https://nexus.junhyung.kr/repository/maven-releases/"
-            }
-            val username = System.getenv("NEXUS_USERNAME")
-            val password = System.getenv("NEXUS_PASSWORD")
+    private fun addMavenRepositories(publishingExtension: PublishingExtension, projectVersion: ProjectVersion) {
+        val username = System.getenv("NEXUS_USERNAME")
+        val password = System.getenv("NEXUS_PASSWORD")
+        if (username.isNullOrBlank() || password.isNullOrBlank()) {
+            return
+        }
 
-            if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
-                maven(url) {
-                    credentials {
-                        this.username = username
-                        this.password = password
-                    }
+        publishingExtension.repositories {
+            val url = getRepositoryUrl(projectVersion)
+            maven(url) {
+                credentials {
+                    this.username = username
+                    this.password = password
                 }
             }
         }
     }
 
-    private fun isSnapshotVersion(projectVersion: String): Boolean {
-        return projectVersion.endsWith("-SNAPSHOT")
+    private fun getRepositoryUrl(projectVersion: ProjectVersion): String {
+        return if (projectVersion.isSnapshotVersion()) {
+            "https://nexus.junhyung.kr/repository/maven-snapshots/"
+        } else {
+            "https://nexus.junhyung.kr/repository/maven-releases/"
+        }
     }
 
 }

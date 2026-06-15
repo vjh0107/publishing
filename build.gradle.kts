@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "kr.junhyung"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Gradle plugin for publishing artifacts to my own Nexus repository."
 
 repositories {
