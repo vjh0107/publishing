@@ -15,6 +15,7 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.hasPlugin
 import org.gradle.kotlin.dsl.maven
+import org.gradle.kotlin.dsl.withType
 
 class PublishingPlugin : Plugin<Project> {
 
@@ -40,11 +41,10 @@ class PublishingPlugin : Plugin<Project> {
     ) {
         publishingExtension.publications {
             create<MavenPublication>("maven") {
-                if (plugins.hasPlugin(JavaPlugin::class)) {
+                plugins.withType<JavaPlugin> {
                     from(softwareComponents["java"])
                 }
-
-                if (plugins.hasPlugin(JavaPlatformPlugin::class)) {
+                plugins.withType<JavaPlatformPlugin> {
                     from(softwareComponents["javaPlatform"])
                 }
             }
